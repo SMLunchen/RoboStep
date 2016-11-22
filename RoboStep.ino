@@ -2,8 +2,6 @@
 #include <Stepper.h>
 #include <HardwareSerial.h>
 
-//definition-shittyboxxything
-
 //Steps per Rev
 #define STEPS 200
 
@@ -11,111 +9,77 @@
 Stepper motorLeft(STEPS, 8, 9, 10, 11);
 Stepper motorRight(STEPS, 4, 5, 6, 7);
 
-//define vars
-int stepSpeed = 2;
-int stepsPerIteration = 1;
+// Variables
+int _speedAccelerate = 2;
+int _speedBreak = 4;
+int _speedRotate = 10;
 
-//define base values
-int currentSpeed = 5;
-int currentDirection = 1;
+int _speedMax = 50;
+
+int _currentSpeed = 0;
+int _currentDirection = 1;
+
+float _tireCircumference = 47;	// CM = 470mm
+float _motorStepAngle = 1.8;	// step angle
+float _distancePerStep = _tireCircumference/360*_motorStepAngle; // => 0.235 cm per step
 
 void setup() {
 	//init Serial Port for debugging (and slowing microprocessor)
 	Serial.begin(9600);
+}
 
+void SerialDebug(String data){
+	Serial.print(data);
+	Serial.println();
 }
 
 void loop() {
-	Serial.print("Current Speed: " + String(currentSpeed));
-	Serial.println();
-
-	//actually does nothing at the moment..
-	driveForward(50, 1000);
-	rotateRight(90);
-	//driveReverse(20, 50);
-	//driveForward(200, 2000);
-	//rotateRight(90);
-	//rotateLeft(90);
-	//driveReverse(20, 50);
-	//rotateLeft(90);
-
+	SerialDebug("loop() start");
+	drive(50);			// drive 50 cm
+	SerialDebug("loop() drive done");
+	rotateRight(90);	// rotate 90 degrees
+	SerialDebug("loop() rotate done");
 }
 
-int checkEmerInterrupt() {
-	int emerStop = digitalRead(2);
-	switch (emerStop) {
-	case 0: {
-		return 0;
-	}
-		break;
-	case 1: {
-		return 1;
-	}
-		break;
-	}
+bool checkEmergencyInterrupt() {
+	if(digitalRead(2) == 1)
+		return true;
+	return false;
 }
 
-void driveForward(int targetSpeed, int distance) {
-	while (checkEmerInterrupt() == 0 && distance > 0) {
-		if (currentSpeed < targetSpeed) {
-			Serial.print("accel d: " + String(distance) + " - " + String(currentSpeed));
-			Serial.println();
-			setSpeed(currentSpeed, &motorLeft);
-			setSpeed(currentSpeed, &motorRight);
-			motorStep(stepsPerIteration, &motorLeft);
-			motorStep(stepsPerIteration*-1, &motorRight);
-			currentSpeed += stepSpeed;
-			distance = distance - 10;
-		} else if (currentSpeed == targetSpeed) {
-			Serial.print("hold d: " + String(distance) + " - " + String(currentSpeed));
-			Serial.println();
-			motorStep(stepsPerIteration, &motorLeft);
-			motorStep(stepsPerIteration*-1, &motorRight);
-			distance = distance - 10;
-		} else if (currentSpeed > targetSpeed) {
-			Serial.print("decel d: " + String(distance) + " - " + String(currentSpeed));
-			Serial.println();
-			setSpeed(currentSpeed, &motorLeft);
-			setSpeed(currentSpeed, &motorRight);
-			motorStep(stepsPerIteration, &motorLeft);
-			motorStep(stepsPerIteration*-1, &motorRight);
-			currentSpeed -= stepSpeed;
-			distance = distance - 10;
-		} //endif
-
-	} //ende whine
-	Fbreak();
-
+void driveCurve(float distance, int angle, int orientation) {
+	// TODO
 }
 
-/*
-void driveReverse(int targetSpeed, int distance) {
-	while (checkEmerInterrupt() == 0 && distance > 0) {
-		if (currentSpeed < targetSpeed) {
-			setSpeed(currentSpeed, &motorLeft);
-			setSpeed(currentSpeed, &motorRight);
-			motorStep((stepsPerIteration * -1), &motorLeft);
-			motorStep((stepsPerIteration), &motorRight);
-			currentSpeed += stepSpeed;
-			distance = distance - 10;
-		} else if (currentSpeed == targetSpeed) {
-			motorStep((stepsPerIteration * -1), &motorLeft);
-			motorStep((stepsPerIteration), &motorRight);
-			distance = distance - 10;
-		} else if (currentSpeed > targetSpeed) {
-			setSpeed(currentSpeed, &motorLeft);
-			setSpeed(currentSpeed, &motorRight);
-			motorStep((stepsPerIteration * -1), &motorLeft);
-			motorStep((stepsPerIteration), &motorRight);
-			currentSpeed -= stepSpeed;
-			distance = distance - 10;
-		} //endif
+void drive(float distance) {
+	float stepsToBreak = _currentSpeed/_speedBreak;
+	float stepsToTake = distance / _distancePerStep;
 
-	} //ende whine
-	Rbreak();
+	// while no emergency break and distance given and distance to go bigger than distance to break
+	while (!checkEmergencyInterrupt() && distance > 0 && (stepsToTake - stepsToBreak) > 0) {
+		//Accelerate
+		if (_currentSpeed < _speedMax) {
+			_currentSpeed += _speedAccelerate;
+			setSpeed(_currentSpeed, &motorLeft);
+			setSpeed(_currentSpeed, &motorRight);
+
+		} else if (_currentSpeed > _speedMax) {
+			_currentSpeed -= _speedAccelerate;
+			setSpeed(_currentSpeed, &motorLeft);
+			setSpeed(_currentSpeed, &motorRight);
+		}
+
+		motorStep(1*_currentDirection, &motorLeft);
+		motorStep(1*_currentDirection*-1, &motorRight);
+
+		//decrease distance depending on tire size
+		distance -= _distancePerStep;
+		stepsToBreak = _currentSpeed/_speedBreak;
+		stepsToTake = distance / _distancePerStep;
+
+	} //end while
+	Break();
 }
-*/
-
 
 void rotateRight(int angle) {
 	rotate(angle, 1);
@@ -125,77 +89,35 @@ void rotateLeft(int angle) {
 	rotate(angle, -1);
 }
 
-void rotate(int angle, int step) {
-	//calculate steps
-	currentSpeed = 20;
-	int StepsToRotate = (int) (angle * 1.8); // 1.8 = 360 Grad / 200 Steps per round
-	Serial.print("Rotating..: " + String(StepsToRotate));
-	Serial.println();
-	while (checkEmerInterrupt() == 0 && StepsToRotate > 0) {
-		setSpeed(currentSpeed, &motorLeft);
-		setSpeed(currentSpeed, &motorRight);
-		motorStep(step, &motorLeft);
-		motorStep(step, &motorRight);
+void rotate(int angle, int orientation) {
+	_currentSpeed = _speedRotate;
+	int StepsToRotate = 50;// ???? TODO - how
+
+	while (!checkEmergencyInterrupt() && StepsToRotate > 0) {
+		setSpeed(_currentSpeed, &motorLeft);
+		setSpeed(_currentSpeed, &motorRight);
+		motorStep(1*orientation, &motorLeft);
+		motorStep(1*orientation, &motorRight);
 		StepsToRotate -= 1;
-		//Serial.print("#");
 	}
 	clearPins();
 }
 
-/*
- void decelerate(int targetSpeed) {
- while(currentSpeed > targetSpeed) {
- setSpeed(currentSpeed);
- motorLeft.step(currentDirection * stepsPerIteration);
- currentSpeed -= stepSpeed;
- }
- if(targetSpeed == 0)
- clearPins();
- }
- */
-
-//forward-Break --well actually it's a break ramp
-void Fbreak() {
-	while (currentSpeed > 0) {
-		setSpeed(currentSpeed, &motorLeft);
-		setSpeed(currentSpeed, &motorRight);
-		motorStep(stepsPerIteration / 2, &motorLeft);
-		motorStep(stepsPerIteration / 2, &motorRight);
-		currentSpeed -= (stepSpeed * 2);
+void Break() {
+	while (_currentSpeed > 0) {
+		setSpeed(_currentSpeed, &motorLeft);
+		setSpeed(_currentSpeed, &motorRight);
+		motorStep(1*_currentDirection, &motorLeft);
+		motorStep(1*_currentDirection*-1, &motorRight);
+		_currentSpeed -= _speedBreak;
 	}
-	clearPins();
-}
-
-//reverse-Break --well actually it's a break ramp
-void Rbreak() {
-	while (currentSpeed < 0) {
-		setSpeed(currentSpeed, &motorLeft);
-		setSpeed(currentSpeed, &motorRight);
-		motorStep((stepsPerIteration * -1) / 2, &motorLeft);
-		motorStep((stepsPerIteration * -1) / 2, &motorRight);
-		currentSpeed += (stepSpeed * 5);
-	}
-
-	clearPins();
-}
-
-//emergency breakythingy rampipipuuuh...<3
-void emergencyBreak(int forceFactor) {
-	while (currentSpeed > 0) {
-		setSpeed(currentSpeed, &motorLeft);
-		setSpeed(currentSpeed, &motorRight);
-		motorStep(stepsPerIteration / 2, &motorLeft);
-		motorStep(stepsPerIteration / 2, &motorRight);
-		currentSpeed -= (stepSpeed * forceFactor);
-	}
-
 	clearPins();
 }
 
 void clearPins() {
 	clearPinsLeft();
 	clearPinsRight();
-	currentSpeed = 0;
+	_currentSpeed = 0;
 }
 
 void clearPinsLeft() {
@@ -227,7 +149,7 @@ void setSpeed(int speed, Stepper *motorIdentifier) {
 void motorStep(int Steps, Stepper *motorIdentifier) {
 	//Serial.print("Step: "+ String(Steps));
 	//Serial.println();
-	if(currentSpeed > 0)
+	if(_currentSpeed > 0)
 		motorIdentifier->step(Steps);
 }
 
