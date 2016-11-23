@@ -12,9 +12,9 @@ Stepper motorRight(STEPS, 4, 5, 6, 7);
 // Variables
 int _speedAccelerate = 2;
 int _speedBreak = 4;
-int _speedRotate = 10;
+int _speedRotate = 5;
 
-int _speedMax = 50;
+int _speedMax = 100;
 
 int _currentSpeed = 0;
 int _currentDirection = 1;
@@ -34,11 +34,19 @@ void SerialDebug(String data){
 }
 
 void loop() {
-	SerialDebug("loop() start");
-	drive(50);			// drive 50 cm
-	SerialDebug("loop() drive done");
+	//SerialDebug("loop() start");
+	/*
+	_currentDirection = 1;
+	drive(200);
+	_currentDirection = -1;
+	drive(200);
+	*/
+	//SerialDebug("loop() drive done");
+	rotateLeft(90);	// rotate 90 degrees
+	delay(1000);
 	rotateRight(90);	// rotate 90 degrees
-	SerialDebug("loop() rotate done");
+	delay(1000);
+	//SerialDebug("loop() rotate done");
 }
 
 bool checkEmergencyInterrupt() {
@@ -91,13 +99,15 @@ void rotateLeft(int angle) {
 
 void rotate(int angle, int orientation) {
 	_currentSpeed = _speedRotate;
-	int StepsToRotate = 50;// ???? TODO - how
+	int StepsToRotate = angle * 2;// ???? TODO - how
 
 	while (!checkEmergencyInterrupt() && StepsToRotate > 0) {
 		setSpeed(_currentSpeed, &motorLeft);
 		setSpeed(_currentSpeed, &motorRight);
-		motorStep(1*orientation, &motorLeft);
-		motorStep(1*orientation, &motorRight);
+		//if(orientation > 0)
+			motorStep(1*orientation, &motorLeft);
+		//else
+			motorStep(1*orientation, &motorRight);
 		StepsToRotate -= 1;
 	}
 	clearPins();
