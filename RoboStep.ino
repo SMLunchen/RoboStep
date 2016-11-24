@@ -12,7 +12,7 @@ Stepper motorRight(STEPS, 4, 5, 6, 7);
 // Variables
 int _speedAccelerate = 2;
 int _speedBreak = 4;
-int _speedRotate = 5;
+int _speedRotate = 10;
 
 int _speedMax = 100;
 
@@ -99,7 +99,7 @@ void rotateLeft(int angle) {
 
 void rotate(int angle, int orientation) {
 	_currentSpeed = _speedRotate;
-	int StepsToRotate = angle * 2;// ???? TODO - how
+	int StepsToRotate = angle * 4;// ???? TODO - how
 
 	while (!checkEmergencyInterrupt() && StepsToRotate > 0) {
 		setSpeed(_currentSpeed, &motorLeft);
