@@ -42,8 +42,7 @@ void loop()
 	digitalWrite(hbled, LOW);
 	delay (400);
 	digitalWrite(hbled, HIGH);
-	delay (200);
-	digitalWrite(hbled, LOW);
+
 
 	Serial.print(" Requesting temperatures...");
 	 sensors.requestTemperatures();
@@ -55,5 +54,8 @@ void loop()
 	 Serial.println(test);
 	 float test2 = (test);
 	 Serial.println(test2);
+		
+	 delay (200);
+	 digitalWrite(hbled, LOW);
 
 }
