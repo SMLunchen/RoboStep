@@ -69,12 +69,12 @@ void setup()
 void loop()
 {
 	//signal Heartbeat
-	digitalWrite(hbled, HIGH);
+	digitalWrite(hbled, 1);
 	delay (200);
-	digitalWrite(hbled, LOW);
+	digitalWrite(hbled, 0);
 	delay (400);
 	//leave LED high during measurement and transmission
-	digitalWrite(hbled, HIGH);
+	digitalWrite(hbled, 1);
 
 
 	Serial.print(" Requesting temperatures...");
@@ -86,12 +86,31 @@ void loop()
 	//converting Stuff
 	float t_mess=(sensors.getTempCByIndex(0));
 	int t_raw=t_mess*100;
+	Serial.print("T-RAWR: ");
 	Serial.println(t_raw,BIN);
 	//prepareData(t_raw);
-
-//
+	//build array
+	char buffer[5];
+		dtostrf(t_raw, 5, 0, buffer);
+		for (int i = 0; i < 5 ; i++)
+		{
+				int t_pts = buffer[i];
+				Serial.print(t_pts,BIN);
+				Serial.print(" ");
+				delay(50);
+				for (int ii = 0; ii < 8; ii++)
+				{
+				int t_rts = bitRead(t_pts,ii);
+				Serial.print((bitRead(t_rts, ii)));
+				Serial.print(" : ");
+				digitalWrite(trans, t_rts);
+				delay(2);
+				digitalWrite(trans, 0);
+				delay(2);
+				}
+		}
 
 	delay (200);
-	digitalWrite(hbled, LOW);
+	digitalWrite(hbled, 0);
 	delay(1000);
 }
