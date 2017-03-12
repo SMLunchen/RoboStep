@@ -8,6 +8,7 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 int hbled = 13;
 int trans = 7;
+int dts = 0;
 
 
 
@@ -94,6 +95,8 @@ void loop()
 		dtostrf(t_raw, 5, 0, buffer);
 		for (int i = 0; i < 5 ; i++)
 		{
+			//clocking msstate
+			int msstate = 0;
 				int t_pts = buffer[i];
 				Serial.print(t_pts,BIN);
 				Serial.print(" ");
@@ -103,14 +106,52 @@ void loop()
 				int t_rts = bitRead(t_pts,ii);
 				Serial.print((bitRead(t_rts, ii)));
 				Serial.print(" : ");
-				digitalWrite(trans, t_rts);
-				delay(2);
-				digitalWrite(trans, 0);
-				delay(2);
+
+				switch (msstate)
+				{
+				case 0:
+				{
+						if  ( (msstate == 0) &&  (t_rts == 1) ) {
+
+						dts = 1;
+						digitalWrite(trans, dts);
+						delay(2);
+						msstate = 1;
+					}
+						if ( (msstate == 0) &&  (t_rts == 0) ) {
+						dts = 0;
+						digitalWrite(trans, dts);
+						delay(2);
+						msstate = 1;
+						}
+					}
+				break;
+
+				case 1:
+				{
+					if  ( (msstate == 1) &&  (t_rts == 1) ) {
+
+						dts = 0;
+						digitalWrite(trans, dts);
+						delay(2);
+						msstate = 0;
+					}
+					if ( (msstate == 1) &&  (t_rts == 0) ) {
+						dts = 1;
+						digitalWrite(trans, dts);
+						delay(2);
+						msstate = 0;
+					}
 				}
+				break;
+
+				}
+		}
 		}
 
 	delay (200);
 	digitalWrite(hbled, 0);
 	delay(1000);
+
+
 }
